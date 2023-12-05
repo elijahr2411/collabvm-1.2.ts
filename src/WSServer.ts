@@ -226,21 +226,21 @@ export default class WSServer {
                 client.onMsgSent();
                 break;
             case "mouse":
-                if (!user?.RDPClient?.connected) return;
+                if (!client?.RDPClient?.connected) return;
                 var x = parseInt(msgArr[1]);
                 var y = parseInt(msgArr[2]);
                 var mask = parseInt(msgArr[3]);
                 if (x === undefined || y === undefined || mask === undefined) return;
-                user.RDPClient.sendPointerEvent(x, y, 1, ((mask & 1) !== 0));
-                user.RDPClient.sendPointerEvent(x, y, 2, ((mask & 4) !== 0));
-                user.RDPClient.sendPointerEvent(x, y, 3, ((mask & 2) !== 0));
+                client.RDPClient.sendPointerEvent(x, y, 1, ((mask & 1) !== 0));
+                client.RDPClient.sendPointerEvent(x, y, 2, ((mask & 4) !== 0));
+                client.RDPClient.sendPointerEvent(x, y, 3, ((mask & 2) !== 0));
                 break;
             case "key":
-                if (!user?.RDPClient?.connected) return;
+                if (!client?.RDPClient?.connected) return;
                 var keysym = parseInt(msgArr[1]);
                 var down = parseInt(msgArr[2]);
                 if (keysym === undefined || (down !== 0 && down !== 1)) return;
-                user.RDPClient.sendKeyEventScancode(keysym, down === 1);
+                client.RDPClient.sendKeyEventScancode(keysym, down === 1);
                 break;
             case "vote":
                 client.sendMsg(guacutils.encode("chat", "Votes are not supported. If the VM is broken, please contact @elijahr.dev on Discord."));
