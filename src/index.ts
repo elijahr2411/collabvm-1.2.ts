@@ -2,8 +2,9 @@ import * as toml from 'toml';
 import IConfig from './IConfig.js';
 import * as fs from "fs";
 import WSServer from './WSServer.js';
-import QEMUVM from './QEMUVM.js';
 import log from './log.js';
+import RDPUser from './RDPUser.js';
+import LDAPClient from './LDAP.js';
 
 log("INFO", "CollabVM Server starting up");
 
@@ -25,21 +26,11 @@ try {
 
 
 async function start() {
-    // Print a warning if qmpSockDir is set
-    // and the host OS is Windows, as this
-    // configuration will very likely not work.
-    if(process.platform === "win32" && Config.vm.qmpSockDir) {
-        log("WARN", "You appear to have the option 'qmpSockDir' enabled in the config.")
-        log("WARN", "This is not supported on Windows, and you will likely run into issues.");
-        log("WARN", "To remove this warning, use the qmpHost and qmpPort options instead.");
-    }
-
-    // Fire up the VM
-    var VM = new QEMUVM(Config);
-    await VM.Start();
-
+    var RDPUsers = new Map<string, RDPUser>();
+    var ldap = new LDAPClient(Config.vm.ldapuri, Config.vm.ldapbind, Config.vm.ldappass, Config.vm.ldapdomain);
+    await ldap.connect();
     // Start up the websocket server
-    var WS = new WSServer(Config, VM);
+    var WS = new WSServer(Config, RDPUsers, ldap);
     WS.listen();
 }
 start();

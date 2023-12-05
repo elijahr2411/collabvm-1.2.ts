@@ -3,6 +3,15 @@ import { Permissions } from "./IConfig";
 export function Randint(min : number, max : number) {
     return Math.floor((Math.random() * (max - min)) + min);
 }
+
+export function Randstr(length : number) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()<>?,./;':\"[]{}\\|`~-=_+";
+    var result = "";
+    for (var i = 0; i < length; i++) {
+        result += chars.charAt(Randint(0, chars.length));
+    }
+    return result;
+}
 export function HTMLSanitize(input : string) : string {
     var output = "";
     for (var i = 0; i < input.length; i++) {
@@ -40,13 +49,9 @@ export function HTMLSanitize(input : string) : string {
 
 export function MakeModPerms(modperms : Permissions) : number {
     var perms = 0;
-    if (modperms.restore) perms |= 1;
-    if (modperms.reboot) perms |= 2;
     if (modperms.ban) perms |= 4;
-    if (modperms.forcevote) perms |= 8;
     if (modperms.mute) perms |= 16;
     if (modperms.kick) perms |= 32;
-    if (modperms.bypassturn) perms |= 64;
     if (modperms.rename) perms |= 128;
     if (modperms.grabip) perms |= 256;
     if (modperms.xss) perms |= 512;
