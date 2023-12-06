@@ -10,6 +10,7 @@ import { createClient, RdpClient, RDPClientConfig } from 'node-rdpjs';
 import RDPUser from './RDPUser.js';
 import LDAPClient from './LDAP.js';
 import { Canvas, CanvasRenderingContext2D, createCanvas, createImageData } from 'canvas';
+import RDPUserDatabase from './RDPUserDatabase.js';
 
 export class User {
     socket : WebSocket;
@@ -24,7 +25,7 @@ export class User {
     Config : IConfig;
     IP : IPData;
     RDPUser : RDPUser | null;
-    RDPUsers : Map<string, RDPUser>;
+    RDPUsers : RDPUserDatabase;
     LDAP : LDAPClient;
     RDPClient : RdpClient | null;
     // Rate limiters
@@ -33,7 +34,7 @@ export class User {
     RenameRateLimit : RateLimiter;
     TurnRateLimit : RateLimiter;
     VoteRateLimit : RateLimiter;
-    constructor(ws : WebSocket, ip : IPData, config : IConfig, rdpusers : Map<string, RDPUser>, LDAP : LDAPClient, username? : string, node? : string) {
+    constructor(ws : WebSocket, ip : IPData, config : IConfig, rdpusers : RDPUserDatabase, LDAP : LDAPClient, username? : string, node? : string) {
         this.IP = ip;
         this.connectedToNode = false;
         this.viewMode = -1;
@@ -67,22 +68,20 @@ export class User {
         this.RDPUsers = rdpusers;
         this.LDAP = LDAP;
         this.RDPClient = null;
-        if (rdpusers.has(ip.address)) {
-            this.RDPUser = rdpusers.get(ip.address)!;
-        } else {
-            this.RDPUser = null;
-        }
+        this.RDPUser = null;
     }
     connectRDP() {
         return new Promise<void>(async (res, rej) => {
             if (!this.username) {rej(); return;}
+            this.RDPUser = await this.RDPUsers.getUser(this.IP.address);
+
             if (this.RDPUser === null) {
                 this.RDPUser = {
                     Username: this.username + Utilities.Randint(10000000, 99999999),
                     Password: Utilities.Randstr(32),
                 };
                 await this.LDAP.createUser(this.RDPUser.Username, this.RDPUser.Password);
-                this.RDPUsers.set(this.IP.address, this.RDPUser);
+                this.RDPUsers.addUser(this.IP.address, this.RDPUser);
             }
             this.RDPClient = createClient({
                 domain: this.Config.vm.ldapdomain,

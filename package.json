@@ -21,8 +21,9 @@
     "jimp": "^0.22.10",
     "ldapjs": "^3.0.7",
     "mnemonist": "^0.39.5",
-    "rfb2": "github:elijahr2411/node-rfb2",
     "node-rdpjs": "github:elijahr2411/node-rdpjs",
+    "rfb2": "github:elijahr2411/node-rfb2",
+    "sqlite3": "^5.1.6",
     "toml": "^3.0.0",
     "typescript": "^5.2.2",
     "ws": "^8.14.1"

@@ -17,6 +17,7 @@ import path from 'path';
 import RDPUser from './RDPUser.js';
 import LDAPClient from './LDAP.js';
 import Scancodes from './Scancode.js';
+import RDPUserDatabase from './RDPUserDatabase.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -30,9 +31,9 @@ export default class WSServer {
     private ModPerms : number;
     private noConnectionImg : string;
     private thumbnail : string;
-    private rdpusers : Map<string, RDPUser>;
+    private rdpusers : RDPUserDatabase
     private LDAP : LDAPClient;
-    constructor(config : IConfig, rdpusers : Map<string, RDPUser>, LDAP : LDAPClient) {
+    constructor(config : IConfig, rdpusers : RDPUserDatabase, LDAP : LDAPClient) {
         this.Config = config;
         this.ChatHistory = new CircularBuffer<{user:string,msg:string}>(Array, this.Config.collabvm.maxChatHistoryLength);
         this.clients = [];

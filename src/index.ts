@@ -3,7 +3,7 @@ import IConfig from './IConfig.js';
 import * as fs from "fs";
 import WSServer from './WSServer.js';
 import log from './log.js';
-import RDPUser from './RDPUser.js';
+import RDPUserDatabase from './RDPUserDatabase.js';
 import LDAPClient from './LDAP.js';
 
 log("INFO", "CollabVM Server starting up");
@@ -26,7 +26,8 @@ try {
 
 
 async function start() {
-    var RDPUsers = new Map<string, RDPUser>();
+    var RDPUsers = new RDPUserDatabase("users.sqlite3");
+    await RDPUsers.init();
     var ldap = new LDAPClient(Config.vm.ldapuri, Config.vm.ldapbind, Config.vm.ldappass, Config.vm.ldapdomain);
     await ldap.connect();
     // Start up the websocket server
