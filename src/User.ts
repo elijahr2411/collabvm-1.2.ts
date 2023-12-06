@@ -28,7 +28,7 @@ export class User {
     RDPUsers : RDPUserDatabase;
     LDAP : LDAPClient;
     RDPClient : RdpClient | null;
-    RDPReconnectInterval? : NodeJS.Timeout;
+    RDPReconnectInterval : NodeJS.Timeout | null;
     NoConnectionImg : string;
     // Rate limiters
     ChatRateLimit : RateLimiter;
@@ -66,7 +66,8 @@ export class User {
         this.TurnRateLimit.on('limit', () => this.closeConnection());
         this.VoteRateLimit = new RateLimiter(3, 3);
         this.VoteRateLimit.on('limit', () => this.closeConnection());
-
+        
+        this.RDPReconnectInterval = null;
         this.NoConnectionImg = noconnectionimg;
         this.RDPUsers = rdpusers;
         this.LDAP = LDAP;
@@ -76,6 +77,11 @@ export class User {
     connectRDP() {
         return new Promise<void>(async (res, rej) => {
             if (!this.username) {rej(); return;}
+            if (this.RDPReconnectInterval) {
+                clearTimeout(this.RDPReconnectInterval);
+                this.RDPReconnectInterval = null;
+            }
+
             if (this.RDPUser === null) this.RDPUser = await this.RDPUsers.getUser(this.IP.address);
             if (this.RDPUser === null) {
                 this.RDPUser = {
@@ -99,11 +105,11 @@ export class User {
                 locale: "en",
                 logLevel: "INFO",
             });
-            this.RDPClient.on('connect', () => {
+            this.RDPClient.once('connect', () => {
                 log("INFO", `RDP connection established for ${this.username}`);
                 res();
             });
-            this.RDPClient.on('error', (e) => {
+            this.RDPClient.once('error', (e) => {
                 var err = e as Error;
                 log("ERROR", `RDP connection error for ${this.username}: ${err.message}. Reconnecting in 5 seconds`);
                 this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
@@ -112,7 +118,7 @@ export class User {
                 this.RDPReconnectInterval = setTimeout(() => this.connectRDP(), 5000);
                 return false;
             });
-            this.RDPClient.on('close', () => {
+            this.RDPClient.once('close', () => {
                 log("WARN", `RDP connection closed for ${this.username}. Reconnecting in 5 seconds`);
                 this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
                 this.RDPClient?.close();
