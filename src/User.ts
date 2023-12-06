@@ -111,15 +111,11 @@ export class User {
             });
             this.RDPClient.once('error', (e) => {
                 var err = e as Error;
-                log("ERROR", `RDP connection error for ${this.username}: ${err.message}. Reconnecting in 5 seconds`);
-                if (this.RDPReconnectInterval) return;
-                this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
-                this.RDPClient?.close();
-                this.RDPClient = null;
-                this.RDPReconnectInterval = setTimeout(() => this.connectRDP(), 5000);
+                log("ERROR", `RDP connection error for ${this.username}: ${err.message}.`);
                 return false;
             });
             this.RDPClient.once('close', () => {
+                if (this.socket.readyState !== this.socket.OPEN) return;
                 log("WARN", `RDP connection closed for ${this.username}. Reconnecting in 5 seconds`);
                 if (this.RDPReconnectInterval) return;
                 this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
