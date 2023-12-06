@@ -28,13 +28,15 @@ export class User {
     RDPUsers : RDPUserDatabase;
     LDAP : LDAPClient;
     RDPClient : RdpClient | null;
+    RDPReconnectInterval? : NodeJS.Timeout;
+    NoConnectionImg : string;
     // Rate limiters
     ChatRateLimit : RateLimiter;
     LoginRateLimit : RateLimiter;
     RenameRateLimit : RateLimiter;
     TurnRateLimit : RateLimiter;
     VoteRateLimit : RateLimiter;
-    constructor(ws : WebSocket, ip : IPData, config : IConfig, rdpusers : RDPUserDatabase, LDAP : LDAPClient, username? : string, node? : string) {
+    constructor(ws : WebSocket, ip : IPData, config : IConfig, rdpusers : RDPUserDatabase, LDAP : LDAPClient, noconnectionimg : string, username? : string, node? : string) {
         this.IP = ip;
         this.connectedToNode = false;
         this.viewMode = -1;
@@ -65,6 +67,7 @@ export class User {
         this.VoteRateLimit = new RateLimiter(3, 3);
         this.VoteRateLimit.on('limit', () => this.closeConnection());
 
+        this.NoConnectionImg = noconnectionimg;
         this.RDPUsers = rdpusers;
         this.LDAP = LDAP;
         this.RDPClient = null;
@@ -73,8 +76,7 @@ export class User {
     connectRDP() {
         return new Promise<void>(async (res, rej) => {
             if (!this.username) {rej(); return;}
-            this.RDPUser = await this.RDPUsers.getUser(this.IP.address);
-
+            if (this.RDPUser === null) this.RDPUser = await this.RDPUsers.getUser(this.IP.address);
             if (this.RDPUser === null) {
                 this.RDPUser = {
                     Username: this.username + Utilities.Randint(10000000, 99999999),
@@ -103,13 +105,19 @@ export class User {
             });
             this.RDPClient.on('error', (e) => {
                 var err = e as Error;
-                log("ERROR", `RDP connection error for ${this.username}: ${err.message}`);
-                this.kick();
+                log("ERROR", `RDP connection error for ${this.username}: ${err.message}. Reconnecting in 5 seconds`);
+                this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
+                this.RDPClient?.close();
+                this.RDPClient = null;
+                this.RDPReconnectInterval = setTimeout(() => this.connectRDP(), 5000);
                 return false;
             });
             this.RDPClient.on('close', () => {
-                log("WARN", `RDP connection closed for ${this.username}`);
-                this.kick();
+                log("WARN", `RDP connection closed for ${this.username}. Reconnecting in 5 seconds`);
+                this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
+                this.RDPClient?.close();
+                this.RDPClient = null;
+                this.RDPReconnectInterval = setTimeout(() => this.connectRDP(), 5000);
             });
             this.RDPClient.on('bitmap', (bitmap) => {
                 var imgdata = createImageData(Uint8ClampedArray.from(bitmap.data), bitmap.width, bitmap.height);

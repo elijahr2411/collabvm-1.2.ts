@@ -159,7 +159,7 @@ export default class WSServer {
             this.ips.push(ipdata);
         }
 
-        var user = new User(ws, ipdata, this.Config, this.rdpusers, this.LDAP);
+        var user = new User(ws, ipdata, this.Config, this.rdpusers, this.LDAP, this.noConnectionImg);
         this.clients.push(user);
         ws.on('error', (e) => {
             //@ts-ignore
