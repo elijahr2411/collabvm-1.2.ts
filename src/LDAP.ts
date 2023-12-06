@@ -37,7 +37,7 @@ export default class LDAPClient {
             const dn = `CN=${username},CN=Users,dc=${this.#domain.split('.').join(',dc=')}`;
             const entry = {
                 cn: username,
-                sAMAccountName: username,
+                sAMAccountName: username.substring(0, 20),
                 objectClass: ['top', 'person', 'organizationalPerson', 'user'],
                 unicodePwd: pass,
                 userAccountControl: (512 | 65536)
