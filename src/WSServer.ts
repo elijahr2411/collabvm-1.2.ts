@@ -242,9 +242,9 @@ export default class WSServer {
                 var down = parseInt(msgArr[2]);
                 if (keysym === undefined || (down !== 0 && down !== 1)) return;
                 //@ts-ignore
-                if (Scancodes["0x" + keysym.toString(16)] === undefined) return;
+                if (Scancodes["0x" + keysym.toString(16).padStart(4, "0")] === undefined) return;
                 //@ts-ignore
-                var scancode = Scancodes["0x" + keysym.toString(16)];
+                var scancode = Scancodes["0x" + keysym.toString(16).padStart(4, "0")];
                 client.RDPClient.sendKeyEventScancode(scancode, down === 1);
                 break;
             case "vote":
