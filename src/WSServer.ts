@@ -18,6 +18,7 @@ import RDPUser from './RDPUser.js';
 import LDAPClient from './LDAP.js';
 import Scancodes from './Scancode.js';
 import RDPUserDatabase from './RDPUserDatabase.js';
+import { execa, execaCommand } from 'execa';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -28,6 +29,15 @@ export default class WSServer {
     private clients : User[];
     private ips : IPData[];
     private ChatHistory : CircularBuffer<{user:string,msg:string}>
+    private voteInProgress : boolean;
+    // Interval to keep track of vote resets
+    private voteInterval? : NodeJS.Timeout;
+    // How much time is left on the vote
+    private voteTime : number;
+    // How much time until another reset vote can be cast
+    private voteCooldown : number;
+    // Interval to keep track
+    private voteCooldownInterval? : NodeJS.Timeout;
     private ModPerms : number;
     private noConnectionImg : string;
     private thumbnail : string;
@@ -52,6 +62,10 @@ export default class WSServer {
         this.thumbnail = readFileSync(__dirname + "/../assets/thumbnail.jpeg").toString("base64");
         this.rdpusers = rdpusers;
         this.LDAP = LDAP;
+
+        this.voteInProgress = false;
+        this.voteTime = 0;
+        this.voteCooldown = 0;
     }
 
     listen() {
@@ -249,7 +263,32 @@ export default class WSServer {
                 client.RDPClient.sendKeyEventScancode(scancode, down === 1);
                 break;
             case "vote":
-                client.sendMsg(guacutils.encode("chat", "Votes are not supported. If the VM is broken, please contact @elijahr.dev on Discord."));
+                if (!this.Config.vm.snapshots) return;
+                if (!client.connectedToNode) return;
+                if (msgArr.length !== 2) return;
+                if (!client.VoteRateLimit.request()) return;
+                switch (msgArr[1]) {
+                    case "1":
+                        if (!this.voteInProgress) {
+                            if (this.voteCooldown !== 0) {
+                                client.sendMsg(guacutils.encode("vote", "3", this.voteCooldown.toString()));
+                                return;
+                            }
+                            this.startVote();
+                            this.clients.forEach(c => c.sendMsg(guacutils.encode("chat", "", `${client.username} has started a vote to reset the VM.`)));
+                        }
+                        else if (client.IP.vote !== true)
+                            this.clients.forEach(c => c.sendMsg(guacutils.encode("chat", "", `${client.username} has voted yes.`)));
+                        client.IP.vote = true;
+                        break;
+                    case "0":
+                        if (!this.voteInProgress) return;
+                        if (client.IP.vote !== false)
+                            this.clients.forEach(c => c.sendMsg(guacutils.encode("chat", "", `${client.username} has voted no.`)));
+                        client.IP.vote = false;
+                        break;
+                }
+                this.sendVoteUpdate();
                 break;
             case "admin":
                 if (msgArr.length < 2) return;
@@ -278,6 +317,17 @@ export default class WSServer {
                     case "5":
                         // QEMU Monitor
                         client.sendMsg(guacutils.encode("admin", "2", "This is not a QEMU VM and therefore QEMU monitor commands cannot be run."));
+                        break;
+                    case "8":
+                        // Restore
+                        if (client.rank !== Rank.Admin && (client.rank !== Rank.Moderator || !this.Config.collabvm.moderatorPermissions.restore)) return;
+                        execaCommand(this.Config.vm.resetcmd);
+                        break;
+                    case "10":
+                        // Reboot
+                        if (client.rank !== Rank.Admin && (client.rank !== Rank.Moderator || !this.Config.collabvm.moderatorPermissions.reboot)) return;
+                        if (msgArr.length !== 3 || msgArr[2] !== this.Config.collabvm.node) return;
+                        execaCommand(this.Config.vm.rebootcmd);
                         break;
                     case "8":
                         // Restore
@@ -423,5 +473,60 @@ export default class WSServer {
         var arr : string[] = ["chat"];
         this.ChatHistory.forEach(c => arr.push(c.user, c.msg));
         return guacutils.encode(...arr);
+    }
+    startVote() {
+        if (this.voteInProgress) return;
+        this.voteInProgress = true;
+        this.clients.forEach(c => c.sendMsg(guacutils.encode("vote", "0")));
+        this.voteTime = this.Config.collabvm.voteTime;
+        this.voteInterval = setInterval(() => {
+            this.voteTime--;
+            if (this.voteTime < 1) {
+                this.endVote();
+            }
+        }, 1000);
+    }
+
+    endVote(result? : boolean) {
+        if (!this.voteInProgress) return;
+        this.voteInProgress = false;
+        clearInterval(this.voteInterval);
+        var count = this.getVoteCounts();
+        this.clients.forEach((c) => c.sendMsg(guacutils.encode("vote", "2")));
+        if (result === true || (result === undefined && count.yes >= count.no)) {
+            this.clients.forEach(c => c.sendMsg(guacutils.encode("chat", "", "The vote to reset the VM has won.")));
+            execaCommand(this.Config.vm.resetcmd);
+        } else {
+            this.clients.forEach(c => c.sendMsg(guacutils.encode("chat", "", "The vote to reset the VM has lost.")));
+        }
+        this.clients.forEach(c => {
+            c.IP.vote = null;
+        });
+        this.voteCooldown = this.Config.collabvm.voteCooldown;
+        this.voteCooldownInterval = setInterval(() => {
+            this.voteCooldown--;
+            if (this.voteCooldown < 1)
+                clearInterval(this.voteCooldownInterval);
+        }, 1000);
+    }
+
+    sendVoteUpdate(client? : User) {
+        if (!this.voteInProgress) return;
+        var count = this.getVoteCounts();
+        var msg = guacutils.encode("vote", "1", (this.voteTime * 1000).toString(), count.yes.toString(), count.no.toString());
+        if (client)
+            client.sendMsg(msg);
+        else
+            this.clients.forEach((c) => c.sendMsg(msg));
+    }
+
+    getVoteCounts() : {yes:number,no:number} {
+        var yes = 0;
+        var no = 0;
+        this.ips.forEach((c) => {
+            if (c.vote === true) yes++;
+            if (c.vote === false) no++;
+        });
+        return {yes:yes,no:no};
     }
 }

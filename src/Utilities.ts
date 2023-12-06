@@ -49,7 +49,10 @@ export function HTMLSanitize(input : string) : string {
 
 export function MakeModPerms(modperms : Permissions) : number {
     var perms = 0;
+    if (modperms.restore) perms |= 1;
+    if (modperms.reboot) perms |= 2;
     if (modperms.ban) perms |= 4;
+    if (modperms.forcevote) perms |= 8;
     if (modperms.mute) perms |= 16;
     if (modperms.kick) perms |= 32;
     if (modperms.rename) perms |= 128;

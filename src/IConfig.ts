@@ -14,6 +14,9 @@ export default interface IConfig {
         ldappass : string;
         ldapdomain : string;
         rdpip : string;
+        rebootcmd : string;
+        snapshots : boolean;
+        resetcmd : string;
     };
     collabvm : {
         node : string;
@@ -30,6 +33,8 @@ export default interface IConfig {
             messages: number;
         };
         tempMuteTime : number;
+        voteTime : number;
+        voteCooldown: number;
         adminpass : string;
         modpass : string;
         moderatorPermissions : Permissions;
@@ -37,7 +42,10 @@ export default interface IConfig {
 };
 
 export interface Permissions {
+    restore : boolean;
+    reboot : boolean;
     ban : boolean;
+    forcevote : boolean;
     mute : boolean;
     kick : boolean;
     rename : boolean;
