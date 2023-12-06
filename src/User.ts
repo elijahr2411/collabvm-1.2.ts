@@ -45,8 +45,6 @@ export class User {
         this.msgsSent = 0;
         this.socket.on('close', () => {
             clearInterval(this.nopSendInterval);
-            if (this.RDPReconnectInterval) clearTimeout(this.RDPReconnectInterval);
-            if (this.RDPClient?.connected) this.RDPClient.close();
         });
         this.socket.on('message', (e) => {
             clearTimeout(this.nopRecieveTimeout);

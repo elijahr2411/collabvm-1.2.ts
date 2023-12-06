@@ -198,6 +198,8 @@ export default class WSServer {
     private connectionClosed(user : User) {
         this.clients.splice(this.clients.indexOf(user), 1);
         log("INFO", `Disconnect From ${user.IP.address}${user.username ? ` with username ${user.username}` : ""}`);
+        if (user.RDPReconnectInterval !== null) clearTimeout(user.RDPReconnectInterval);
+        if (user.RDPClient) user.RDPClient.close();
         if (!user.username) return;
         //@ts-ignore
         this.clients.forEach((c) => c.sendMsg(guacutils.encode("remuser", "1", user.username)));
