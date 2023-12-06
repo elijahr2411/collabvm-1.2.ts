@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import RDPUser from './RDPUser.js';
 import LDAPClient from './LDAP.js';
+import Scancodes from './Scancode.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -240,7 +241,11 @@ export default class WSServer {
                 var keysym = parseInt(msgArr[1]);
                 var down = parseInt(msgArr[2]);
                 if (keysym === undefined || (down !== 0 && down !== 1)) return;
-                client.RDPClient.sendKeyEventScancode(keysym, down === 1);
+                //@ts-ignore
+                if (Scancodes["0x" + keysym.toString(16)] === undefined) return;
+                //@ts-ignore
+                var scancode = Scancodes["0x" + keysym.toString(16)];
+                client.RDPClient.sendKeyEventScancode(scancode, down === 1);
                 break;
             case "vote":
                 client.sendMsg(guacutils.encode("chat", "Votes are not supported. If the VM is broken, please contact @elijahr.dev on Discord."));
