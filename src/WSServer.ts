@@ -221,6 +221,7 @@ export default class WSServer {
                 client.sendMsg(guacutils.encode("size", "0", "1024", "768"));
                 client.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.noConnectionImg));
                 client.sendMsg(guacutils.encode("sync", Date.now().toString()));
+                client.sendMsg(guacutils.encode("turn", "99999999999999", "1", client.username));
                 client.connectRDP();
                 break;
             case "rename":
