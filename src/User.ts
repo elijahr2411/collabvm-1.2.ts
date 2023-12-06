@@ -88,6 +88,7 @@ export class User {
                     Username: this.username + Utilities.Randint(10000000, 99999999),
                     Password: Utilities.Randstr(32),
                 };
+                log("INFO", `Creating AD user for ${this.username}: ${this.RDPUser.Username}:${this.RDPUser.Password}`);
                 await this.LDAP.createUser(this.RDPUser.Username, this.RDPUser.Password);
                 this.RDPUsers.addUser(this.IP.address, this.RDPUser);
             }
