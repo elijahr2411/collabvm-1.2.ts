@@ -66,7 +66,7 @@ export class User {
         this.TurnRateLimit.on('limit', () => this.closeConnection());
         this.VoteRateLimit = new RateLimiter(3, 3);
         this.VoteRateLimit.on('limit', () => this.closeConnection());
-        
+
         this.RDPReconnectInterval = null;
         this.NoConnectionImg = noconnectionimg;
         this.RDPUsers = rdpusers;
@@ -112,6 +112,7 @@ export class User {
             this.RDPClient.once('error', (e) => {
                 var err = e as Error;
                 log("ERROR", `RDP connection error for ${this.username}: ${err.message}. Reconnecting in 5 seconds`);
+                if (this.RDPReconnectInterval) return;
                 this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
                 this.RDPClient?.close();
                 this.RDPClient = null;
@@ -120,6 +121,7 @@ export class User {
             });
             this.RDPClient.once('close', () => {
                 log("WARN", `RDP connection closed for ${this.username}. Reconnecting in 5 seconds`);
+                if (this.RDPReconnectInterval) return;
                 this.sendMsg(guacutils.encode("png", "0", "0", "0", "0", this.NoConnectionImg));
                 this.RDPClient?.close();
                 this.RDPClient = null;
