@@ -196,6 +196,10 @@ export default class WSServer {
     };
 
     private connectionClosed(user : User) {
+        if(user.IP.vote != null) {
+            user.IP.vote = null;
+            this.sendVoteUpdate();
+        };
         this.clients.splice(this.clients.indexOf(user), 1);
         log("INFO", `Disconnect From ${user.IP.address}${user.username ? ` with username ${user.username}` : ""}`);
         if (user.RDPReconnectInterval !== null) clearTimeout(user.RDPReconnectInterval);
@@ -346,6 +350,20 @@ export default class WSServer {
                         var user = this.clients.find(c => c.username === msgArr[2]);
                         if (!user) return;
                         user.ban();
+                        break;
+                    case "13":
+                        // Force Vote
+                        if (msgArr.length !== 3) return;
+                        if (client.rank !== Rank.Admin && (client.rank !== Rank.Moderator || !this.Config.collabvm.moderatorPermissions.forcevote)) return;
+                        if (!this.voteInProgress) return;
+                        switch (msgArr[2]) {
+                            case "1":
+                                this.endVote(true);
+                                break;
+                            case "0":
+                                this.endVote(false);
+                                break;
+                        }
                         break;
                     case "14":
                         // Mute
