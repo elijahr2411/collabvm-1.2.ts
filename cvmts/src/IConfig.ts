@@ -1,5 +1,6 @@
 import { CgroupLimits } from './vm/qemu_launcher';
 import VNCVMDef from './vm/vnc/VNCVMDef';
+import { VirtServer2005VMDef } from './vm/vs2005';
 
 export default interface IConfig {
 	http: {
@@ -28,7 +29,7 @@ export default interface IConfig {
 		};
 	};
 	vm: {
-		type: 'qemu' | 'vncvm';
+		type: 'qemu' | 'vncvm' | 'vs2005';
 	};
 	qemu: {
 		qemuArgs: string;
@@ -37,6 +38,7 @@ export default interface IConfig {
 		resourceLimits?: CgroupLimits
 	};
 	vncvm: VNCVMDef;
+	vs2005: VirtServer2005VMDef;
 	mysql: MySQLConfig;
 	bans: BanConfig;
 	collabvm: {

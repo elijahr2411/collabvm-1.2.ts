@@ -18,6 +18,7 @@ import { QemuVMShim } from './vm/qemu.js';
 import { TheProtocolManager } from './protocol/Manager.js';
 import { GuacamoleProtocol } from './protocol/GuacamoleProtocol.js';
 import { BinRectsProtocol } from './protocol/BinRectsProtocol.js';
+import { VirtServer2005VM } from './vm/vs2005.js';
 
 let logger = pino();
 
@@ -88,6 +89,10 @@ async function start() {
 		}
 		case 'vncvm': {
 			VM = new VNCVM(Config.vncvm);
+			break;
+		}
+		case 'vs2005': {
+			VM = new VirtServer2005VM(Config.vs2005);
 			break;
 		}
 		default: {
